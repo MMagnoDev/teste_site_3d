@@ -6,9 +6,7 @@ export const FooterCTA: React.FC = () => {
   return (
     <footer id="contato" className="relative z-20 bg-[#080808] border-t border-white/10 text-[#f5f3ef] px-6 py-28 md:px-16 lg:px-24">
       <div className="max-w-4xl mx-auto text-center space-y-8">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-mono tracking-widest uppercase">
-          <span>VAMOS CONSTRUIR</span>
-        </div>
+
 
         <h2 className="text-4xl md:text-6xl font-light tracking-tight leading-tight">
           Pronto para transformar percepção em reputação?

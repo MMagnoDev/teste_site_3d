@@ -20,7 +20,7 @@ export const ScrollVideoStage = forwardRef<
   return (
     <div
       ref={ref}
-      className="sticky top-0 left-0 w-full h-[100dvh] overflow-hidden bg-[#080808] z-10"
+      className="sticky top-0 left-0 w-screen h-[100dvh] overflow-hidden bg-[#080808] z-10"
       style={{ contain: "layout paint", isolation: "isolate" }}
     >
       {/* HTML5 Video Element with direct src for robust client seeking and event binding */}
@@ -53,7 +53,7 @@ export const ScrollVideoStage = forwardRef<
       <div className="absolute inset-x-0 bottom-0 h-32 sm:h-48 md:h-64 bg-gradient-to-t from-[#080808] via-transparent to-transparent pointer-events-none z-20" />
 
       {/* Chapter Text Items */}
-      <div className="relative w-full h-full max-w-7xl mx-auto pointer-events-none">
+      <div className="relative w-full h-full pointer-events-none">
         {scrollChapters.map((chapter, index) => (
           <ScrollChapterContent
             key={chapter.id}

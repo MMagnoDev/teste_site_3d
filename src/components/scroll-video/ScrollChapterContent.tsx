@@ -12,19 +12,17 @@ export const ScrollChapterContent = forwardRef<
   HTMLDivElement,
   ScrollChapterContentProps
 >(({ chapter }, ref) => {
-  // Mobile: centered and shifted slightly up to clear bottom progress safe areas
-  // Desktop: left / center / right positioning as configured.
+  // On mobile: always bottom-center. On desktop: follow textPosition config.
   const positionClasses = {
-    left: "bottom-[16vh] sm:bottom-[20vh] left-1/2 -translate-x-1/2 text-center md:text-left md:top-1/2 md:bottom-auto md:-translate-y-1/2 md:left-16 lg:left-24 md:translate-x-0 items-center md:items-start",
-    center: "bottom-[16vh] sm:bottom-[20vh] left-1/2 -translate-x-1/2 text-center md:top-1/2 md:bottom-auto md:-translate-y-1/2 items-center",
-    right: "bottom-[16vh] sm:bottom-[20vh] left-1/2 -translate-x-1/2 text-center md:text-right md:top-1/2 md:bottom-auto md:-translate-y-1/2 md:right-16 lg:right-24 md:left-auto md:translate-x-0 items-center md:items-end",
+    left:   "bottom-[14vh] left-0 right-0 px-5 text-left md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-14 lg:left-20 md:right-auto md:px-0",
+    center: "bottom-[14vh] left-0 right-0 px-5 text-center md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:right-auto md:px-0",
+    right:  "bottom-[14vh] left-0 right-0 px-5 text-left md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:right-14 lg:right-20 md:left-auto md:text-right md:px-0",
   }[chapter.textPosition];
 
-  // Responsive width classes matching mobile screens cleanly
   const widthClasses = {
-    small: "max-w-[90vw] sm:max-w-md",
-    medium: "max-w-[90vw] sm:max-w-lg md:max-w-xl",
-    large: "max-w-[92vw] sm:max-w-xl md:max-w-3xl",
+    small:  "w-full md:max-w-sm",
+    medium: "w-full md:max-w-lg",
+    large:  "w-full md:max-w-2xl",
   }[chapter.textWidth || "medium"];
 
   return (
@@ -33,19 +31,19 @@ export const ScrollChapterContent = forwardRef<
       id={`chapter-card-${chapter.id}`}
       data-chapter-id={chapter.id}
       aria-labelledby={`heading-${chapter.id}`}
-      className={`absolute z-20 flex flex-col px-4 sm:px-6 py-4 w-full ${widthClasses} ${positionClasses} opacity-0 pointer-events-auto select-text`}
+      className={`absolute z-20 flex flex-col ${widthClasses} ${positionClasses} opacity-0 pointer-events-auto select-text`}
     >
-      <header className="space-y-2 sm:space-y-3">
+      <header>
         <h2
           id={`heading-${chapter.id}`}
-          className="text-xl sm:text-3xl md:text-5xl lg:text-6xl font-light tracking-tight text-[#f5f3ef] leading-[1.2] sm:leading-[1.12]"
+          className="text-[1.6rem] leading-[1.15] sm:text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-[#f5f3ef]"
         >
           {chapter.title}
         </h2>
       </header>
 
       {chapter.description && (
-        <p className="mt-2 sm:mt-4 text-[11px] sm:text-base md:text-xl text-[#f5f3ef]/80 font-light leading-relaxed">
+        <p className="mt-3 text-[13px] sm:text-sm md:text-base text-[#f5f3ef]/75 font-light leading-relaxed">
           {chapter.description}
         </p>
       )}

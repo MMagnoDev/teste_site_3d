@@ -7,7 +7,7 @@ export default function HomePage() {
   return (
     <SmoothScrollProvider>
       <Header />
-      <main className="relative min-h-screen bg-[#080808]">
+      <main className="relative w-full min-h-screen bg-[#080808] overflow-x-hidden">
         {/* Scroll-Driven Video Viewport (Client Component with Lenis Smooth Scroll) */}
         <ScrollVideoExperience />
 
