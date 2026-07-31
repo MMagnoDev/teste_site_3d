@@ -1,7 +1,6 @@
 "use client";
 
 import React, { forwardRef } from "react";
-import { scrollChapters } from "@/config/scroll-experience";
 
 export interface ScrollProgressProps {
   totalChapters: number;
@@ -29,18 +28,6 @@ export const ScrollProgress = forwardRef<HTMLDivElement, ScrollProgressProps>(
           >
             01 / {String(totalChapters).padStart(2, "0")}
           </span>
-        </div>
-
-        {/* Minimalist Chapter Dots */}
-        <div className="hidden sm:flex items-center space-x-2">
-          {scrollChapters.map((ch, idx) => (
-            <span
-              key={ch.id}
-              data-chapter-dot={idx}
-              className="w-1.5 h-1.5 rounded-full bg-white/20 transition-colors duration-300"
-              title={ch.title}
-            />
-          ))}
         </div>
       </aside>
     );

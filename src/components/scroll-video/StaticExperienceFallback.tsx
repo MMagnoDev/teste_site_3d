@@ -33,24 +33,19 @@ export const StaticExperienceFallback: React.FC<StaticExperienceFallbackProps> =
             Modo de Acessibilidade
           </span>
           <h1 className="text-4xl md:text-6xl font-light tracking-tight text-[#f5f3ef]">
-            Narrativa Visual Interativa
+            Minimum Studio
           </h1>
           <p className="text-lg text-muted max-w-2xl mx-auto font-light">
-            Experiência otimizada com movimento reduzido. Todo o conteúdo está disponível para navegação natural.
+            Estúdio de Branding, Identidade Visual & Design de Marcas de alto padrão. Nosso manifesto e pilares estratégicos estão listados abaixo.
           </p>
         </header>
 
-        {scrollChapters.map((chapter, index) => (
+        {scrollChapters.map((chapter) => (
           <section
             key={chapter.id}
             id={chapter.id}
             className="space-y-4 p-8 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md"
           >
-            {chapter.eyebrow && (
-              <span className="inline-block text-xs font-mono uppercase tracking-widest text-accent">
-                {String(index + 1).padStart(2, "0")} — {chapter.eyebrow}
-              </span>
-            )}
             <h2 className="text-2xl md:text-4xl font-light tracking-tight text-[#f5f3ef]">
               {chapter.title}
             </h2>

@@ -15,22 +15,24 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Experiência Digital Imersiva | Scroll-Driven Video",
+  title: "Minimum | Estúdio de Branding, Identidade Visual & Design de Marcas",
   description:
-    "Uma experiência landing page cinematográfica em que a narrativa e a reprodução de vídeo são integradas ao controle de rolagem do usuário.",
+    "Criamos identidade visual do zero para marcas que querem se destacar com estratégia, presença e sofisticação. Design minimalista de alto padrão para negócios de destaque.",
   keywords: [
-    "Next.js",
-    "GSAP",
-    "ScrollTrigger",
-    "Scroll Driven Video",
-    "Design Cinematográfico",
-    "Experiência Imersiva",
+    "Design de marcas",
+    "Identidade visual",
+    "Branding de luxo",
+    "Design minimalista",
+    "Agência de design",
+    "Estúdio de branding",
+    "Minimum Studio",
+    "Estratégia de marca",
   ],
-  authors: [{ name: "Front-End Senior Specialist" }],
+  authors: [{ name: "Minimum Studio" }],
   openGraph: {
-    title: "Experiência Digital Imersiva | Scroll-Driven Video",
+    title: "Minimum | Estúdio de Branding, Identidade Visual & Design de Marcas",
     description:
-      "Acompanhe o movimento visual sincronizado à rolagem com acabamento editorial e fluidez de alta performance.",
+      "Criamos identidade visual do zero para marcas que querem se destacar com estratégia, presença e sofisticação.",
     locale: "pt_BR",
     type: "website",
   },

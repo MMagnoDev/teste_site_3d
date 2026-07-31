@@ -43,17 +43,14 @@ export const ScrollVideoStage = forwardRef<
       </video>
 
       {/* Cinematic Legibility & Transition Overlays */}
-      {/* 1. Global Base Vignette */}
-      <div className="absolute inset-0 pointer-events-none bg-radial-vignette opacity-80" />
+      {/* 1. Top Header Gradient */}
+      <div className="absolute inset-x-0 top-0 h-24 sm:h-36 bg-gradient-to-b from-[#080808]/70 via-transparent to-transparent pointer-events-none z-15" />
 
-      {/* 2. Top Header Gradient */}
-      <div className="absolute inset-x-0 top-0 h-28 sm:h-40 bg-gradient-to-b from-[#080808]/90 via-[#080808]/40 to-transparent pointer-events-none z-15" />
+      {/* 2. Soft Ambient Dark Overlay for Text Legibility */}
+      <div className="absolute inset-0 pointer-events-none bg-[#080808]/20" />
 
-      {/* 3. Soft Ambient Dark Overlay for Text Legibility */}
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#080808]/75 via-[#080808]/30 to-[#080808]/75" />
-
-      {/* 4. Bottom Smooth Fade Gradient Transition (for seamless unpinning into next section) */}
-      <div className="absolute inset-x-0 bottom-0 h-36 sm:h-52 md:h-72 bg-gradient-to-t from-[#080808] via-[#080808]/75 to-transparent pointer-events-none z-20" />
+      {/* 3. Bottom Smooth Fade Gradient Transition (for seamless unpinning into next section) */}
+      <div className="absolute inset-x-0 bottom-0 h-32 sm:h-48 md:h-64 bg-gradient-to-t from-[#080808] via-transparent to-transparent pointer-events-none z-20" />
 
       {/* Chapter Text Items */}
       <div className="relative w-full h-full max-w-7xl mx-auto pointer-events-none">

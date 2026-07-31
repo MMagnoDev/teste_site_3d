@@ -1,7 +1,7 @@
 export const VIDEO_SOURCES = {
   original: "/videos/original/scroll-video-original.MOV",
-  desktop: "/videos/optimized/scroll-video-desktop.MOV",
-  mobile: "/videos/optimized/scroll-video-mobile.MOV",
+  desktop: "/videos/optimized/scroll-video-desktop.mp4",
+  mobile: "/videos/optimized/scroll-video-mobile.mp4",
   poster: "/videos/optimized/scroll-video-poster.webp",
 } as const;
 

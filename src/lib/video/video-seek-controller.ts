@@ -1,5 +1,8 @@
-import { clamp } from "@/lib/clamp";
 import { VIDEO_PERFORMANCE_CONFIG } from "@/config/video-sources";
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(Math.max(value, min), max);
+
 
 export interface SeekState {
   inFlight: boolean;

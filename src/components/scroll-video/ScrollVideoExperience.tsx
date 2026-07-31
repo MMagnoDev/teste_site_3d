@@ -38,8 +38,18 @@ export const ScrollVideoExperience: React.FC = () => {
   const [totalScrollHeight, setTotalScrollHeight] = useState<string>("600vh");
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const activeChapterIndexRef = useRef<number>(0);
+  const [timedOut, setTimedOut] = useState(false);
 
   const metadata = useVideoMetadata(videoRef);
+
+  // Fallback if video takes longer than 4.5s to load or decode
+  useEffect(() => {
+    if (metadata.isLoaded || metadata.hasError) return;
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [metadata.isLoaded, metadata.hasError]);
 
   // Sync ref to state to resolve React hook race conditions
   useEffect(() => {
@@ -153,18 +163,6 @@ export const ScrollVideoExperience: React.FC = () => {
             if (currentIdx !== activeChapterIndexRef.current) {
               activeChapterIndexRef.current = currentIdx;
 
-              // Update active indicator dot classes
-              const dots = document.querySelectorAll("[data-chapter-dot]");
-              dots.forEach((dot, idx) => {
-                if (idx === currentIdx) {
-                  dot.classList.add("bg-accent");
-                  dot.classList.remove("bg-white/20");
-                } else {
-                  dot.classList.remove("bg-accent");
-                  dot.classList.add("bg-white/20");
-                }
-              });
-
               // Update discrete text counter
               const counter = document.getElementById("chapter-counter-text");
               if (counter) {
@@ -252,16 +250,18 @@ export const ScrollVideoExperience: React.FC = () => {
           `chapter-${index}-exit`
         );
 
-        masterTl.to(
-          textEl,
-          {
-            autoAlpha: 0,
-            y: -20,
-            duration: chapter.scrollWeight * 0.25,
-            ease: "power1.in",
-          },
-          `chapter-${index}-exit`
-        );
+        if (!isLastChapter) {
+          masterTl.to(
+            textEl,
+            {
+              autoAlpha: 0,
+              y: -20,
+              duration: chapter.scrollWeight * 0.25,
+              ease: "power1.in",
+            },
+            `chapter-${index}-exit`
+          );
+        }
       });
 
       ScrollTrigger.refresh();
@@ -277,8 +277,8 @@ export const ScrollVideoExperience: React.FC = () => {
     }
   );
 
-  // Reduced Motion Fallback
-  if (isReducedMotion) {
+  // Fallback to static if reduced motion, load error, or loading timeout
+  if (isReducedMotion || metadata.hasError || timedOut) {
     return (
       <StaticExperienceFallback
         videoSrc={activeVideoSrc}
