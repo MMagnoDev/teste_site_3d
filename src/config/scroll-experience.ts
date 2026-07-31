@@ -75,7 +75,7 @@ export const scrollChapters: ScrollChapter[] = [
       "O vídeo chega ao seu último frame com precisão impecável antes de liberar a sequência final da página.",
     videoStart: 0.75,
     videoEnd: 1.0,
-    scrollWeight: 2.2,
+    scrollWeight: 3.2, // Increased from 2.2 for ultra-smooth final deceleration
     slowDownWeight: 0.85,
     textPosition: "center",
     textWidth: "medium",

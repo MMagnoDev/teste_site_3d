@@ -5,13 +5,18 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 
-import { scrollChapters, VIDEO_CONFIG } from "@/config/scroll-experience";
+import { scrollChapters } from "@/config/scroll-experience";
+import { VIDEO_SOURCES, VIDEO_PERFORMANCE_CONFIG } from "@/config/video-sources";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useVideoMetadata } from "@/hooks/useVideoMetadata";
-import { clamp } from "@/lib/clamp";
+import { useVideoFrameLoop } from "@/hooks/useVideoFrameLoop";
+import { selectVideoSource } from "@/lib/video/select-video-source";
+import { VideoSeekController } from "@/lib/video/video-seek-controller";
+import { VideoDiagnostics } from "@/lib/video/video-diagnostics";
 import { ScrollVideoStage } from "./ScrollVideoStage";
 import { VideoLoader } from "./VideoLoader";
 import { StaticExperienceFallback } from "./StaticExperienceFallback";
+import { ScrollVideoDiagnostics } from "./ScrollVideoDiagnostics";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -25,29 +30,34 @@ export const ScrollVideoExperience: React.FC = () => {
   const progressRef = useRef<HTMLDivElement>(null);
   const chapterRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Smooth lerp seeking refs
-  const targetSeekRef = useRef<number>(0);
-  const currentSeekRef = useRef<number>(0);
+  // Performance controllers
+  const seekControllerRef = useRef<VideoSeekController | null>(null);
+  const diagnosticsRef = useRef<VideoDiagnostics>(new VideoDiagnostics());
 
-  const [activeVideoSrc, setActiveVideoSrc] = useState<string>(
-    VIDEO_CONFIG.desktopSrc
-  );
+  const [activeVideoSrc, setActiveVideoSrc] = useState<string>(VIDEO_SOURCES.desktop);
   const [totalScrollHeight, setTotalScrollHeight] = useState<string>("600vh");
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+  const activeChapterIndexRef = useRef<number>(0);
 
   const metadata = useVideoMetadata(videoRef);
 
-  // Set appropriate src & scroll height based on viewport width
+  // Sync ref to state to resolve React hook race conditions
   useEffect(() => {
+    if (videoRef.current && videoRef.current !== videoElement) {
+      setVideoElement(videoRef.current);
+    }
+  }, [metadata.isLoaded, videoElement]);
+
+  // Determine initial source (desktop / mobile)
+  useEffect(() => {
+    const src = selectVideoSource();
+    setActiveVideoSrc(src);
+
     const handleResize = () => {
       const isMobile = window.innerWidth < 768;
-      const src = isMobile
-        ? VIDEO_CONFIG.mobileSrc || VIDEO_CONFIG.desktopSrc
-        : VIDEO_CONFIG.desktopSrc;
       const multiplier = isMobile
-        ? VIDEO_CONFIG.mobileScrollMultiplier
-        : VIDEO_CONFIG.desktopScrollMultiplier;
-
-      setActiveVideoSrc(src);
+        ? VIDEO_PERFORMANCE_CONFIG.mobileScrollMultiplier
+        : VIDEO_PERFORMANCE_CONFIG.desktopScrollMultiplier;
       setTotalScrollHeight(`${multiplier * 100}vh`);
     };
 
@@ -56,41 +66,29 @@ export const ScrollVideoExperience: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // High-precision RAF Lerp Loop for liquid-smooth video frame interpolation
+  // Instantiate seek controller when video element is ready
   useEffect(() => {
-    if (isReducedMotion || !metadata.isLoaded || !videoRef.current) return;
-
-    let rafId: number;
-    const video = videoRef.current;
-
-    const lerpLoop = () => {
-      if (video && video.duration) {
-        const target = targetSeekRef.current;
-        const current = currentSeekRef.current;
-
-        // Velvety Lerp Factor (0.09 for ultra-smooth fluid video seeking)
-        const diff = target - current;
-
-        if (Math.abs(diff) > 0.00005) {
-          const nextTime = clamp(current + diff * 0.09, 0, video.duration);
-          currentSeekRef.current = nextTime;
-
-          try {
-            video.currentTime = nextTime;
-          } catch {
-            // Ignore seek interruptions during rapid scrolling
-          }
-        }
+    if (videoRef.current) {
+      seekControllerRef.current = new VideoSeekController(videoRef.current);
+    }
+    return () => {
+      if (seekControllerRef.current) {
+        seekControllerRef.current.destroy();
+        seekControllerRef.current = null;
       }
-
-      rafId = requestAnimationFrame(lerpLoop);
     };
+  }, [videoRef, metadata.isLoaded]);
 
-    rafId = requestAnimationFrame(lerpLoop);
-    return () => cancelAnimationFrame(rafId);
-  }, [metadata.isLoaded, isReducedMotion]);
+  // Hook driving high-performance requestVideoFrameCallback/RAF loops
+  useVideoFrameLoop({
+    videoElement,
+    seekControllerRef,
+    diagnosticsRef,
+    isLoaded: metadata.isLoaded,
+    isReducedMotion,
+  });
 
-  // GSAP ScrollTrigger timeline setup
+  // Single GSAP Timeline ScrollTrigger setup
   useGSAP(
     () => {
       if (
@@ -107,39 +105,79 @@ export const ScrollVideoExperience: React.FC = () => {
       const video = videoRef.current;
       const duration = metadata.duration;
 
-      // Playhead object animated by GSAP
+      // Playhead target time reference (tracked by GSAP, read by loop controller)
       const playhead = { time: 0 };
-      targetSeekRef.current = 0;
-      currentSeekRef.current = 0;
+      if (seekControllerRef.current) {
+        seekControllerRef.current.updateTargetTime(0);
+      }
       video.currentTime = 0;
 
-      // Create master timeline pinned to container
+      const isMobile = window.innerWidth < 768;
+      const scrubValue = isMobile
+        ? VIDEO_PERFORMANCE_CONFIG.mobileScrub
+        : VIDEO_PERFORMANCE_CONFIG.desktopScrub;
+
       const masterTl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
           start: "top top",
           end: "bottom bottom",
-          scrub: true, // Direct scrub to Lenis smooth scroll
+          scrub: scrubValue, // Smooth interpolation matching Lenis
           pin: stageRef.current,
           pinSpacing: true,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
-            // Update initial scroll cue visibility
+            // 1. Direct DOM styling to avoid React renders
             const scrollCue = document.getElementById("scroll-cue");
             if (scrollCue) {
               scrollCue.style.opacity = self.progress > 0.03 ? "0" : "1";
             }
 
-            // Update progress bar scale
             const progressBar = document.getElementById("progress-bar-fill");
             if (progressBar) {
               progressBar.style.transform = `scaleX(${self.progress})`;
+            }
+
+            // 2. Resolve active chapter index and trigger state only on change
+            const currentVideoTime = playhead.time;
+            let currentIdx = 0;
+            for (let i = 0; i < scrollChapters.length; i++) {
+              const start = duration * scrollChapters[i].videoStart;
+              const end = duration * scrollChapters[i].videoEnd;
+              if (currentVideoTime >= start && currentVideoTime <= end) {
+                currentIdx = i;
+                break;
+              }
+            }
+
+            if (currentIdx !== activeChapterIndexRef.current) {
+              activeChapterIndexRef.current = currentIdx;
+
+              // Update active indicator dot classes
+              const dots = document.querySelectorAll("[data-chapter-dot]");
+              dots.forEach((dot, idx) => {
+                if (idx === currentIdx) {
+                  dot.classList.add("bg-accent");
+                  dot.classList.remove("bg-white/20");
+                } else {
+                  dot.classList.remove("bg-accent");
+                  dot.classList.add("bg-white/20");
+                }
+              });
+
+              // Update discrete text counter
+              const counter = document.getElementById("chapter-counter-text");
+              if (counter) {
+                counter.innerText = `${String(currentIdx + 1).padStart(2, "0")} / ${String(
+                  scrollChapters.length
+                ).padStart(2, "0")}`;
+              }
             }
           },
         },
       });
 
-      // Build chapter animations onto timeline
+      // Build chapter animations onto timeline (transform & opacity only, NO GPU-heavy filters)
       scrollChapters.forEach((chapter, index) => {
         const textEl = chapterRefs.current[index];
         if (!textEl) return;
@@ -147,15 +185,13 @@ export const ScrollVideoExperience: React.FC = () => {
         const tStart = duration * chapter.videoStart;
         const tEnd = duration * chapter.videoEnd;
 
-        // Break time into 3 segments: Entrance -> Reading Focus (Ultra Slowdown) -> Exit
         const slowWeight = chapter.slowDownWeight ?? 0.85;
         const activeDuration = tEnd - tStart;
 
-        // Intermediate video time targets
         const tFocus = tStart + activeDuration * 0.15;
         const tRelease = tStart + activeDuration * (0.15 + 0.75 * (1 - slowWeight));
 
-        // 1. Entrance: Text appears smoothly, targetSeek advances to tFocus
+        // 1. Entrance: text enters via translation & opacity, video moves to focus
         masterTl.to(
           playhead,
           {
@@ -163,7 +199,9 @@ export const ScrollVideoExperience: React.FC = () => {
             duration: chapter.scrollWeight * 0.25,
             ease: "none",
             onUpdate: () => {
-              targetSeekRef.current = playhead.time;
+              if (seekControllerRef.current) {
+                seekControllerRef.current.updateTargetTime(playhead.time);
+              }
             },
           },
           `chapter-${index}-start`
@@ -171,40 +209,44 @@ export const ScrollVideoExperience: React.FC = () => {
 
         masterTl.fromTo(
           textEl,
-          { autoAlpha: 0, y: 36, filter: "blur(10px)" },
+          { autoAlpha: 0, y: 24 }, // GPU friendly transform3d and opacity
           {
             autoAlpha: 1,
             y: 0,
-            filter: "blur(0px)",
             duration: chapter.scrollWeight * 0.25,
-            ease: "power2.out",
+            ease: "power1.out",
           },
           `chapter-${index}-start`
         );
 
-        // 2. Reading Focus / Deceleration: Text is 100% visible, video moves in micro-drift from tFocus to tRelease
+        // 2. Reading focus / slowdown phase: video advances micro-slowly
         masterTl.to(
           playhead,
           {
             time: tRelease,
-            duration: chapter.scrollWeight * 1.2, // Extended scroll distance for reading focus
+            duration: chapter.scrollWeight * 1.2,
             ease: "sine.inOut",
             onUpdate: () => {
-              targetSeekRef.current = playhead.time;
+              if (seekControllerRef.current) {
+                seekControllerRef.current.updateTargetTime(playhead.time);
+              }
             },
           },
           `chapter-${index}-hold`
         );
 
-        // 3. Exit: Text fades out smoothly, targetSeek advances to tEnd
+        // 3. Exit: text leaves, video advances to end of chapter (smoothed/decelerated for the last chapter)
+        const isLastChapter = index === scrollChapters.length - 1;
         masterTl.to(
           playhead,
           {
             time: tEnd,
-            duration: chapter.scrollWeight * 0.25,
-            ease: "none",
+            duration: chapter.scrollWeight * (isLastChapter ? 1.5 : 0.25),
+            ease: isLastChapter ? "power1.out" : "none",
             onUpdate: () => {
-              targetSeekRef.current = playhead.time;
+              if (seekControllerRef.current) {
+                seekControllerRef.current.updateTargetTime(playhead.time);
+              }
             },
           },
           `chapter-${index}-exit`
@@ -214,16 +256,14 @@ export const ScrollVideoExperience: React.FC = () => {
           textEl,
           {
             autoAlpha: 0,
-            y: -28,
-            filter: "blur(8px)",
+            y: -20,
             duration: chapter.scrollWeight * 0.25,
-            ease: "power2.in",
+            ease: "power1.in",
           },
           `chapter-${index}-exit`
         );
       });
 
-      // Ensure ScrollTrigger refreshes accurately
       ScrollTrigger.refresh();
 
       return () => {
@@ -231,13 +271,31 @@ export const ScrollVideoExperience: React.FC = () => {
         ScrollTrigger.getAll().forEach((st) => st.kill());
       };
     },
-    { scope: containerRef, dependencies: [metadata.isLoaded, metadata.duration, isReducedMotion] }
+    {
+      scope: containerRef,
+      dependencies: [metadata.isLoaded, metadata.duration, isReducedMotion],
+    }
   );
 
   // Reduced Motion Fallback
   if (isReducedMotion) {
-    return <StaticExperienceFallback videoSrc={activeVideoSrc} posterSrc={VIDEO_CONFIG.posterSrc} />;
+    return (
+      <StaticExperienceFallback
+        videoSrc={activeVideoSrc}
+        posterSrc={VIDEO_SOURCES.poster}
+      />
+    );
   }
+
+  // Get current diagnostics details for dev overlay
+  const getDiagnosticsData = () => {
+    return diagnosticsRef.current.getDiagnostics(
+      videoRef.current,
+      seekControllerRef.current ? seekControllerRef.current.getTargetTime() : 0,
+      seekControllerRef.current ? seekControllerRef.current.totalSeeksRequested : 0,
+      seekControllerRef.current ? seekControllerRef.current.totalSeeksCompleted : 0
+    );
+  };
 
   return (
     <>
@@ -246,6 +304,10 @@ export const ScrollVideoExperience: React.FC = () => {
         hasError={metadata.hasError}
         errorMessage={metadata.errorMessage}
       />
+
+      {VIDEO_PERFORMANCE_CONFIG.debug && (
+        <ScrollVideoDiagnostics getDiagnosticsData={getDiagnosticsData} />
+      )}
 
       <div
         ref={containerRef}

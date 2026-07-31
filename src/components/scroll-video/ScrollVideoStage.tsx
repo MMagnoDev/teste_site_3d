@@ -1,7 +1,8 @@
 "use client";
 
 import React, { forwardRef, RefObject } from "react";
-import { scrollChapters, VIDEO_CONFIG } from "@/config/scroll-experience";
+import { scrollChapters } from "@/config/scroll-experience";
+import { VIDEO_SOURCES } from "@/config/video-sources";
 import { ScrollChapterContent } from "./ScrollChapterContent";
 import { ScrollProgress } from "./ScrollProgress";
 
@@ -20,22 +21,25 @@ export const ScrollVideoStage = forwardRef<
     <div
       ref={ref}
       className="sticky top-0 left-0 w-full h-[100dvh] overflow-hidden bg-[#080808] z-10"
+      style={{ contain: "layout paint", isolation: "isolate" }}
     >
-      {/* HTML5 Video Element */}
+      {/* HTML5 Video Element with direct src for robust client seeking and event binding */}
       <video
         ref={videoRef}
+        src={videoSrc}
         muted
         playsInline
         preload="auto"
         disablePictureInPicture
         controls={false}
-        poster={VIDEO_CONFIG.posterSrc}
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none transform-gpu"
+        poster={VIDEO_SOURCES.poster}
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none transform-gpu scroll-video-stage"
         aria-hidden="true"
+        style={{ transform: "translateZ(0)" }}
       >
-        <source src={videoSrc} type="video/mp4" />
-        <source src="/videos/scroll-video.mp4" type="video/mp4" />
-        <source src="/videos/video_site.MOV" type="video/quicktime" />
+        {/* Fallback sources if direct src binding is resolved differently by the browser */}
+        <source src={videoSrc} type={videoSrc.endsWith(".MOV") || videoSrc.endsWith(".mov") ? "video/quicktime" : "video/mp4"} />
+        <source src={VIDEO_SOURCES.original} type="video/quicktime" />
       </video>
 
       {/* Cinematic Legibility & Transition Overlays */}
